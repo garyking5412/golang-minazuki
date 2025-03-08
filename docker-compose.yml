@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  golang:
+    build: .
+    container_name: electronics-golang-app
+    ports:
+      - "3004:3004"
+      - "50051:50051"
+    networks:
+      - docker_internal_network
+    restart: always
+networks:
+  docker_internal_network:
+    external: true

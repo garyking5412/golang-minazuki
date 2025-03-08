@@ -1,0 +1,16 @@
+syntax = "proto3";
+option go_package = "golang-minazuki/protobuf/service";
+
+service CategoryService {
+  rpc GetCategory(CategoryRequest) returns (CategoryResponse);
+}
+
+message CategoryResponse {
+  int32 id = 1;
+  string name = 2;
+  string detail = 3;
+}
+
+message CategoryRequest {
+  int32 id = 1;
+}
