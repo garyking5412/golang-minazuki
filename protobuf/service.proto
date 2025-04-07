@@ -1,5 +1,5 @@
 syntax = "proto3";
-option go_package = "golang-minazuki/protobuf/service";
+option go_package = "golang-minazuki/protobuf/services";
 
 service CategoryService {
   rpc GetCategory(CategoryRequest) returns (CategoryResponse);

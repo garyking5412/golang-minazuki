@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
+	"golang-minazuki/goService"
+	"golang-minazuki/models"
 	service "golang-minazuki/protobuf"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -63,55 +67,39 @@ func initGrpcClient() (connection *grpc.ClientConn) {
 	return conn
 }
 
-type Category struct {
-	gorm.Model
-	Name   string `json:"name"`
-	Detail string `json:"detail"`
-}
-
-func (Category) TableName() string {
-	return "category"
+func initLocalRedisConnection() (connection *redis.Client) {
+	log.Printf("REDIS client INIT >>>")
+	connection = redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+		Protocol: 2,
+	})
+	var ctx = context.Background()
+	pong, err := connection.Ping(ctx).Result()
+	if err != nil {
+		log.Fatalf("Could not connect to Redis: %v", err)
+	}
+	fmt.Println(pong)
+	return connection
 }
 
 var db *gorm.DB
 
 func connectDatabase() *gorm.DB {
 	log.Printf("Database server connecting >>>")
-	dsn := "host=host.docker.internal user=postgres password=2716 dbname=postgres port=5432 sslmode=disable search_path=local"
+	dsn := "host=localhost user=postgres password=2716 dbname=postgres port=5432 sslmode=disable search_path=public"
 	var err error
 
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	db.AutoMigrate(&Category{})
 	return db
 }
 
-func createCategory(c *gin.Context) {
-	var newCategory Category
-	if err := c.BindJSON(&newCategory); err != nil {
-		c.JSON(400, gin.H{"message": "Bad Request"})
-		return
-	}
-	if err := db.Create(&newCategory).Error; err != nil {
-		c.JSON(500, gin.H{"message": "Internal Server Error"})
-		return
-	}
-	c.IndentedJSON(http.StatusCreated, newCategory)
-}
-
-func getAllCategory(c *gin.Context) {
-	var allCategory []Category
-	if err := db.Find(&allCategory).Error; err != nil {
-		log.Printf("Failed to get all category: %v", err)
-		return
-	}
-	c.IndentedJSON(http.StatusOK, allCategory)
-}
-
 func getCategory(c *gin.Context) {
-	var allCategory []Category
+	var allCategory []models.Category
 	if err := db.Find(&allCategory).Error; err != nil {
 		log.Printf("Failed to get all category: %v", err)
 		return
@@ -136,13 +124,16 @@ func initGinServer() {
 	log.Printf("GIN server INIT >>>")
 	rout := gin.Default()
 	port := ":3004"
+	redisConnection := initLocalRedisConnection()
 	rout.GET("/minazuki", func(ctx *gin.Context) {
-		getAllCategory(ctx)
+		goService.GetAllCategory(ctx, db)
 	})
 	rout.GET("/minazuki/getCategoryByID", func(ctx *gin.Context) {
-		getCategoryById(ctx, initGrpcClient())
+		goService.GetCategoryById(ctx, redisConnection)
 	})
-	rout.POST("/minazuki", createCategory)
+	rout.POST("/minazuki", func(ctx *gin.Context) {
+		goService.CachingCategory(ctx, redisConnection)
+	})
 	err := rout.Run(port)
 	if err != nil {
 		log.Fatalf("Failed to start GIN server: %v", err)

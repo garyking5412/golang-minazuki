@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.21.12
-// source: protobuf/service.proto
+// source: protobuf/services.proto
 
 package service
 
@@ -22,7 +22,7 @@ const (
 	CategoryService_GetCategory_FullMethodName = "/CategoryService/GetCategory"
 )
 
-// CategoryServiceClient is the client API for CategoryService service.
+// CategoryServiceClient is the client API for CategoryService services.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CategoryServiceClient interface {
@@ -47,7 +47,7 @@ func (c *categoryServiceClient) GetCategory(ctx context.Context, in *CategoryReq
 	return out, nil
 }
 
-// CategoryServiceServer is the server API for CategoryService service.
+// CategoryServiceServer is the server API for CategoryService services.
 // All implementations must embed UnimplementedCategoryServiceServer
 // for forward compatibility.
 type CategoryServiceServer interface {
@@ -68,7 +68,7 @@ func (UnimplementedCategoryServiceServer) GetCategory(context.Context, *Category
 func (UnimplementedCategoryServiceServer) mustEmbedUnimplementedCategoryServiceServer() {}
 func (UnimplementedCategoryServiceServer) testEmbeddedByValue()                         {}
 
-// UnsafeCategoryServiceServer may be embedded to opt out of forward compatibility for this service.
+// UnsafeCategoryServiceServer may be embedded to opt out of forward compatibility for this services.
 // Use of this interface is not recommended, as added methods to CategoryServiceServer will
 // result in compilation errors.
 type UnsafeCategoryServiceServer interface {
@@ -104,7 +104,7 @@ func _CategoryService_GetCategory_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-// CategoryService_ServiceDesc is the grpc.ServiceDesc for CategoryService service.
+// CategoryService_ServiceDesc is the grpc.ServiceDesc for CategoryService services.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var CategoryService_ServiceDesc = grpc.ServiceDesc{
@@ -117,5 +117,5 @@ var CategoryService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "protobuf/service.proto",
+	Metadata: "protobuf/services.proto",
 }

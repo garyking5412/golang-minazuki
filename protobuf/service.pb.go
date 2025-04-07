@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.32.0
 // 	protoc        v3.21.12
-// source: protobuf/service.proto
+// source: protobuf/services.proto
 
 package service
 
