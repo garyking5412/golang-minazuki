@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
-	"golang-minazuki/goService"
+	"golang-minazuki/LocalService"
+	"golang-minazuki/global"
 	"golang-minazuki/models"
 	service "golang-minazuki/protobuf"
 	"google.golang.org/grpc"
@@ -126,19 +128,59 @@ func initGinServer() {
 	port := ":3004"
 	redisConnection := initLocalRedisConnection()
 	rout.GET("/minazuki", func(ctx *gin.Context) {
-		goService.GetAllCategory(ctx, db)
+		LocalService.GetAllCategory(ctx, db)
 	})
 	rout.GET("/minazuki/getCategoryByID", func(ctx *gin.Context) {
-		goService.GetCategoryById(ctx, redisConnection)
+		LocalService.GetCategoryById(ctx, redisConnection)
 	})
 	rout.POST("/minazuki", func(ctx *gin.Context) {
-		goService.CachingCategory(ctx, redisConnection)
+		LocalService.CachingCategory(ctx, redisConnection)
 	})
 	err := rout.Run(port)
 	if err != nil {
 		log.Fatalf("Failed to start GIN server: %v", err)
 	}
 	log.Printf("GIN server listening at %v", port)
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func initWebsocketServer() {
+	http.HandleFunc("/ws", handleConn)
+	go func() {
+		log.Println("Starting server on :8082")
+		if err := http.ListenAndServe(":8082", nil); err != nil {
+			log.Fatal("ListenAndServe:", err)
+		}
+	}()
+	select {}
+}
+
+func handleConn(writer http.ResponseWriter, request *http.Request) {
+	log.Printf("Websocket server INIT >>>")
+	conn, err := upgrader.Upgrade(writer, request, nil)
+	if err != nil {
+		log.Printf("Failed to upgrade connection: %v", err)
+	}
+	defer conn.Close()
+	fmt.Println("Client Connected")
+
+	for {
+		messageType, message, err := conn.ReadMessage()
+		if err != nil {
+			log.Printf("Failed to read message: %v", err)
+		}
+		response := LocalService.HandleWSMessage(messageType, message)
+		log.Printf("Echo: %v", response)
+		if err := conn.WriteMessage(messageType, []byte(response)); err != nil {
+			log.Printf("Failed to write message: %v", err)
+			break
+		}
+	}
 }
 
 func main() {
@@ -154,6 +196,12 @@ func main() {
 
 	//set up application
 	go initGinServer()
+
+	global.Ctx = &global.ApplicationContext{
+		DatabaseConnection: db,
+	}
+
+	initWebsocketServer()
 
 	<-stopChan
 }

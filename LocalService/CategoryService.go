@@ -1,4 +1,4 @@
-package goService
+package LocalService
 
 import (
 	"encoding/json"

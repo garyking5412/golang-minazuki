@@ -169,8 +169,8 @@ var file_protobuf_service_proto_goTypes = []interface{}{
 	(*CategoryRequest)(nil),  // 1: CategoryRequest
 }
 var file_protobuf_service_proto_depIdxs = []int32{
-	1, // 0: CategoryService.GetCategory:input_type -> CategoryRequest
-	0, // 1: CategoryService.GetCategory:output_type -> CategoryResponse
+	1, // 0: LocalService.GetCategory:input_type -> CategoryRequest
+	0, // 1: LocalService.GetCategory:output_type -> CategoryResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

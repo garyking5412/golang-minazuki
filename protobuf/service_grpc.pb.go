@@ -19,10 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CategoryService_GetCategory_FullMethodName = "/CategoryService/GetCategory"
+	CategoryService_GetCategory_FullMethodName = "/LocalService/GetCategory"
 )
 
-// CategoryServiceClient is the client API for CategoryService services.
+// CategoryServiceClient is the client API for LocalService services.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CategoryServiceClient interface {
@@ -47,7 +47,7 @@ func (c *categoryServiceClient) GetCategory(ctx context.Context, in *CategoryReq
 	return out, nil
 }
 
-// CategoryServiceServer is the server API for CategoryService services.
+// CategoryServiceServer is the server API for LocalService services.
 // All implementations must embed UnimplementedCategoryServiceServer
 // for forward compatibility.
 type CategoryServiceServer interface {
@@ -104,11 +104,11 @@ func _CategoryService_GetCategory_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-// CategoryService_ServiceDesc is the grpc.ServiceDesc for CategoryService services.
+// CategoryService_ServiceDesc is the grpc.ServiceDesc for LocalService services.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var CategoryService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "CategoryService",
+	ServiceName: "LocalService",
 	HandlerType: (*CategoryServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
