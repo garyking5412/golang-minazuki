@@ -20,8 +20,12 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
+	"time"
 )
+
+var grpcClients sync.Map
 
 type CategoryServiceServer struct {
 	service.UnimplementedCategoryServiceServer
@@ -36,6 +40,22 @@ func (s *CategoryServiceServer) GetCategory(ctx context.Context, request *servic
 	}, nil
 }
 
+func (s *CategoryServiceServer) Chat(stream service.CategoryService_ChatServer) error {
+	log.Print("Connection established >>>>>>>>>>")
+
+	clientID := strconv.Itoa(int(time.Now().Unix()))
+
+	welcome := &service.ChatMessage{
+		Sender:    clientID,
+		Content:   "Access Granted! Welcome to Golang Minazuki GRPC Server",
+		Timestamp: time.Now().Unix(),
+	}
+	if err := stream.Send(welcome); err != nil {
+		panic(err)
+	}
+	return nil
+}
+
 func (s *CategoryServiceServer) mustEmbedUnimplementedCategoryServiceServer() {
 	//TODO implement me
 	panic("implement me")
@@ -43,7 +63,7 @@ func (s *CategoryServiceServer) mustEmbedUnimplementedCategoryServiceServer() {
 
 func initGrpcServer() {
 	log.Printf("GRPC server INIT >>>")
-	lis, err := net.Listen("tcp", ":50051")
+	lis, err := net.Listen("tcp", "localhost:50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -152,8 +172,8 @@ var upgrader = websocket.Upgrader{
 func initWebsocketServer() {
 	http.HandleFunc("/ws", handleConn)
 	go func() {
-		log.Println("Starting server on :8082")
-		if err := http.ListenAndServe(":8082", nil); err != nil {
+		log.Println("Starting server on :8081")
+		if err := http.ListenAndServe(":8081", nil); err != nil {
 			log.Fatal("ListenAndServe:", err)
 		}
 	}()
@@ -201,7 +221,7 @@ func main() {
 		DatabaseConnection: db,
 	}
 
-	initWebsocketServer()
+	//initWebsocketServer()
 
 	<-stopChan
 }

@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.21.12
-// source: protobuf/services.proto
+// source: protobuf/service.proto
 
-package service
+package services
 
 import (
 	context "context"
@@ -19,14 +19,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CategoryService_GetCategory_FullMethodName = "/LocalService/GetCategory"
+	CategoryService_GetCategory_FullMethodName = "/CategoryService/GetCategory"
+	CategoryService_Greeting_FullMethodName    = "/CategoryService/Greeting"
+	CategoryService_Chat_FullMethodName        = "/CategoryService/Chat"
 )
 
-// CategoryServiceClient is the client API for LocalService services.
+// CategoryServiceClient is the client API for CategoryService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CategoryServiceClient interface {
 	GetCategory(ctx context.Context, in *CategoryRequest, opts ...grpc.CallOption) (*CategoryResponse, error)
+	Greeting(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GreetingResponse], error)
+	Chat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ChatMessage, ChatMessage], error)
 }
 
 type categoryServiceClient struct {
@@ -47,11 +51,45 @@ func (c *categoryServiceClient) GetCategory(ctx context.Context, in *CategoryReq
 	return out, nil
 }
 
-// CategoryServiceServer is the server API for LocalService services.
+func (c *categoryServiceClient) Greeting(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GreetingResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &CategoryService_ServiceDesc.Streams[0], CategoryService_Greeting_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ConnectRequest, GreetingResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CategoryService_GreetingClient = grpc.ServerStreamingClient[GreetingResponse]
+
+func (c *categoryServiceClient) Chat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ChatMessage, ChatMessage], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &CategoryService_ServiceDesc.Streams[1], CategoryService_Chat_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ChatMessage, ChatMessage]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CategoryService_ChatClient = grpc.BidiStreamingClient[ChatMessage, ChatMessage]
+
+// CategoryServiceServer is the server API for CategoryService service.
 // All implementations must embed UnimplementedCategoryServiceServer
 // for forward compatibility.
 type CategoryServiceServer interface {
 	GetCategory(context.Context, *CategoryRequest) (*CategoryResponse, error)
+	Greeting(*ConnectRequest, grpc.ServerStreamingServer[GreetingResponse]) error
+	Chat(grpc.BidiStreamingServer[ChatMessage, ChatMessage]) error
 	mustEmbedUnimplementedCategoryServiceServer()
 }
 
@@ -65,10 +103,16 @@ type UnimplementedCategoryServiceServer struct{}
 func (UnimplementedCategoryServiceServer) GetCategory(context.Context, *CategoryRequest) (*CategoryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCategory not implemented")
 }
+func (UnimplementedCategoryServiceServer) Greeting(*ConnectRequest, grpc.ServerStreamingServer[GreetingResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method Greeting not implemented")
+}
+func (UnimplementedCategoryServiceServer) Chat(grpc.BidiStreamingServer[ChatMessage, ChatMessage]) error {
+	return status.Errorf(codes.Unimplemented, "method Chat not implemented")
+}
 func (UnimplementedCategoryServiceServer) mustEmbedUnimplementedCategoryServiceServer() {}
 func (UnimplementedCategoryServiceServer) testEmbeddedByValue()                         {}
 
-// UnsafeCategoryServiceServer may be embedded to opt out of forward compatibility for this services.
+// UnsafeCategoryServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to CategoryServiceServer will
 // result in compilation errors.
 type UnsafeCategoryServiceServer interface {
@@ -104,11 +148,29 @@ func _CategoryService_GetCategory_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-// CategoryService_ServiceDesc is the grpc.ServiceDesc for LocalService services.
+func _CategoryService_Greeting_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ConnectRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CategoryServiceServer).Greeting(m, &grpc.GenericServerStream[ConnectRequest, GreetingResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CategoryService_GreetingServer = grpc.ServerStreamingServer[GreetingResponse]
+
+func _CategoryService_Chat_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(CategoryServiceServer).Chat(&grpc.GenericServerStream[ChatMessage, ChatMessage]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CategoryService_ChatServer = grpc.BidiStreamingServer[ChatMessage, ChatMessage]
+
+// CategoryService_ServiceDesc is the grpc.ServiceDesc for CategoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var CategoryService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "LocalService",
+	ServiceName: "CategoryService",
 	HandlerType: (*CategoryServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -116,6 +178,18 @@ var CategoryService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CategoryService_GetCategory_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "protobuf/services.proto",
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Greeting",
+			Handler:       _CategoryService_Greeting_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Chat",
+			Handler:       _CategoryService_Chat_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
+	Metadata: "protobuf/service.proto",
 }

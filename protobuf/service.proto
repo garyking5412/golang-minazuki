@@ -3,6 +3,8 @@ option go_package = "golang-minazuki/protobuf/services";
 
 service CategoryService {
   rpc GetCategory(CategoryRequest) returns (CategoryResponse);
+  rpc Greeting(ConnectRequest) returns (stream GreetingResponse);
+  rpc Chat(stream ChatMessage) returns (stream ChatMessage);
 }
 
 message CategoryResponse {
@@ -13,4 +15,18 @@ message CategoryResponse {
 
 message CategoryRequest {
   int32 id = 1;
+}
+
+message ConnectRequest {
+  string clientId = 1;
+}
+
+message GreetingResponse {
+  string response = 1;
+}
+
+message ChatMessage {
+  string sender = 1;
+  string content = 2;
+  int64 timestamp = 3;
 }
