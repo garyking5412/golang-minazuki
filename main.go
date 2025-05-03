@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/hashicorp/consul/api"
 	"github.com/redis/go-redis/v9"
 	"golang-minazuki/LocalService"
 	"golang-minazuki/global"
@@ -26,6 +27,60 @@ import (
 )
 
 var grpcClients sync.Map
+var port = ":3004"
+var consulClient *api.Client
+
+func registerConsulServiceRegistry() {
+	log.Println("Registering consul service registry >>> ")
+	consulAddr := "localhost:8500"
+	serviceName := "go-minazuki"
+	serviceID := "go-minazuki-3004"
+	consulConfig := api.DefaultConfig()
+	consulConfig.Address = consulAddr
+	consul, err := api.NewClient(consulConfig)
+	if err != nil {
+		log.Fatalf("Failed to create consul client: %v", err)
+	}
+
+	err = consul.Agent().ServiceRegister(&api.AgentServiceRegistration{
+		ID:      serviceID,
+		Name:    serviceName,
+		Port:    3004,
+		Address: "localhost",
+		Check: &api.AgentServiceCheck{
+			HTTP:     "http://localhost:3004/health",
+			Interval: "5s",
+			Timeout:  "2s",
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+	consulClient = consul
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte("OK"))
+	if err != nil {
+		return
+	}
+}
+
+func consulJavaSpringHostPs(ctx *gin.Context) {
+	services, _, err := consulClient.Health().Service("java-spring-minazuki", "", true, nil)
+	if err != nil {
+		log.Fatalf("Error getting services: %v", err)
+	}
+
+	var result []string
+
+	for _, ser := range services {
+		result = append(result, fmt.Sprintf("%s:%d", ser.Service.Address, ser.Service.Port))
+	}
+
+	ctx.IndentedJSON(http.StatusOK, result)
+}
 
 type CategoryServiceServer struct {
 	service.UnimplementedCategoryServiceServer
@@ -145,7 +200,6 @@ func getCategoryById(c *gin.Context, connection *grpc.ClientConn) {
 func initGinServer() {
 	log.Printf("GIN server INIT >>>")
 	rout := gin.Default()
-	port := ":3004"
 	redisConnection := initLocalRedisConnection()
 	rout.GET("/minazuki", func(ctx *gin.Context) {
 		LocalService.GetAllCategory(ctx, db)
@@ -156,10 +210,15 @@ func initGinServer() {
 	rout.POST("/minazuki", func(ctx *gin.Context) {
 		LocalService.CachingCategory(ctx, redisConnection)
 	})
+	rout.GET("/consul/health-check", func(c *gin.Context) {
+		consulJavaSpringHostPs(c)
+	})
+	rout.GET("/health", gin.WrapH(http.HandlerFunc(healthHandler)))
 	err := rout.Run(port)
 	if err != nil {
 		log.Fatalf("Failed to start GIN server: %v", err)
 	}
+
 	log.Printf("GIN server listening at %v", port)
 }
 
@@ -216,6 +275,8 @@ func main() {
 
 	//set up application
 	go initGinServer()
+
+	registerConsulServiceRegistry()
 
 	global.Ctx = &global.ApplicationContext{
 		DatabaseConnection: db,
