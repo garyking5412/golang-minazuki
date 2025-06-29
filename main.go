@@ -3,18 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
-	"github.com/hashicorp/consul/api"
-	"github.com/redis/go-redis/v9"
 	"golang-minazuki/LocalService"
 	"golang-minazuki/global"
 	"golang-minazuki/models"
 	service "golang-minazuki/protobuf"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"log"
 	"net"
 	"net/http"
@@ -24,6 +16,15 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"github.com/hashicorp/consul/api"
+	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var grpcClients sync.Map
@@ -266,7 +267,6 @@ func main() {
 
 	stopChan := make(chan os.Signal, 1)
 	signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
-
 	//set up database connection
 	go connectDatabase()
 
